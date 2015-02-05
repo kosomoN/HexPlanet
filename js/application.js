@@ -1,27 +1,31 @@
 var scene = new THREE.Scene();
-//var camera = new THREE.OrthographicCamera((window.innerWidth / window.innerHeight) * 2 / - 2, (window.innerWidth / window.innerHeight) * 2 / 2, 2 / 2, 2 / - 2, 1, 1000);
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 var renderer = new THREE.WebGLRenderer({ antialiasing: true }); 
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 var stats = new Stats();
-//stats.setMode(1);
 stats.domElement.style.position = 'absolute';
 stats.domElement.style.top = '10px';
 document.body.appendChild( stats.domElement );
 
+window.addEventListener('resize', function() {
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+});
+
 var controls = new THREE.TrackballControls( camera, renderer.domElement );
 controls.noPan = true;
-controls.minDistance = 1.5;
+controls.minDistance = 1.1;
 controls.maxDistance = 3;
 controls.rotateSpeed = 0.09;
 controls.dynamicDampingFactor = 0.7;
 
 var light = new THREE.DirectionalLight( 0xffffaa );
-//scene.add(light);
+scene.add(light);
 
-var ambient = new THREE.AmbientLight( 0xffffff );
+var ambient = new THREE.AmbientLight( 0x888888 );
 scene.add(ambient);
 
 
@@ -30,166 +34,11 @@ halfe.next = 1;
 
 var geometry = new THREE.IcosahedronGeometry(1, 3);
 
-var planet = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x123456 }));
-//scene.add( planet );
-
-var planetWire = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x333333, wireframe: true}));
-scene.add( planetWire );
-
-
-var profiling = Date.now();
-for(var i  = 0; i < 10; i++) {
-	var removeFace = geometry.faces[i * 79 + 17];
-	for(var j = 0; j < geometry.faces.length; j++) {
-		var face = geometry.faces[j];
-		var vertexAEqual = (face.a == removeFace.a || face.b == removeFace.a || face.c == removeFace.a);
-		var vertexBEqual = (face.a == removeFace.b || face.b == removeFace.b || face.c == removeFace.b);
-		var vertexCEqual = (face.a == removeFace.c || face.b == removeFace.c || face.c == removeFace.c);
-
-		//If two vertices are the same
-		if(vertexAEqual && (vertexBEqual || vertexCEqual) || (vertexBEqual && vertexCEqual)) {
-			geometry.faces.splice(geometry.faces.indexOf(removeFace), 1);
-			geometry.faces.splice(geometry.faces.indexOf(face), 1);
-
-			var secondAEqual = (face.a == removeFace.a || face.a == removeFace.b || face.a == removeFace.c);
-			var secondBEqual = (face.b == removeFace.a || face.b == removeFace.b || face.b == removeFace.c);
-			var secondCEqual = (face.c == removeFace.a || face.c == removeFace.b || face.c == removeFace.c);
-
-			var vertex1 = -1;
-			var vertex2 = -1;
-			var vertex3 = -1;
-			var vertex4 = -1;
-
-
-			if(vertexAEqual) {
-				vertex1 = removeFace.a;
-			} else {
-				vertex2 = removeFace.a;
-			}
-
-			if(vertexBEqual) {
-				if(vertex1 == -1)
-					vertex1 = removeFace.b;
-				else
-					vertex3 = removeFace.b;
-			} else {
-				vertex2 = removeFace.b;
-			}
-
-			if(vertexCEqual) {
-				vertex3 = removeFace.c;
-			} else {
-				vertex2 = removeFace.b;
-			}
-
-			if(!secondAEqual)
-				vertex4 = face.a;
-			if(!secondBEqual)
-				vertex4 = face.b;
-			if(!secondCEqual)
-				vertex4 = face.c;
-
-
-			var face1 = new THREE.Face3(vertex2, vertex1, vertex4);
-			var face2 = new THREE.Face3(vertex2, vertex3, vertex4);
-			geometry.faces.push(face1);
-			geometry.faces.push(face2);
-
-			//Calculate normal to make sure the face is in the right direction
-			var u = geometry.vertices[face1.b].clone().sub(geometry.vertices[face1.a]);
-			var v = geometry.vertices[face1.c].clone().sub(geometry.vertices[face1.a]);
-
-			var normal = new THREE.Vector3();
-			normal.x = (u.y * v.z) - (u.z * v.y);
-			normal.y = (u.z * v.x) - (u.x * v.z);
-			normal.z = (u.x * v.y) - (u.y * v.x);
-
-			//If it points outwards from the origin (angle between the face position and the normal)
-			var dotProd = normal.normalize().dot(geometry.vertices[face1.a].clone().normalize());
-			console.log(dotProd);
-			if(dotProd < -0.5) {
-				var p1 = face1.a;
-				face1.a = face1.b;
-				face1.b = p1;
-			}
-
-
-
-
-			//Calculate normal to make sure the face is in the right direction
-			u = geometry.vertices[face2.b].clone().sub(geometry.vertices[face2.a]);
-			v = geometry.vertices[face2.c].clone().sub(geometry.vertices[face2.a]);
-
-			normal = new THREE.Vector3();
-			normal.x = (u.y * v.z) - (u.z * v.y);
-			normal.y = (u.z * v.x) - (u.z * v.z);
-			normal.z = (u.x * v.y) - (u.z * v.x);
-
-			//If it points outwards from the origin (angle between the face position and the normal)
-			dotProd = normal.normalize().dot(geometry.vertices[face2.a].clone().normalize());
-			console.log(dotProd);
-			if(dotProd < -0.5) {
-				var p1 = face2.a;
-				face2.a = face.b;
-				face2.b = p1;
-			}
-
-			break;
-		}
-	}
-}
-console.log("Removing of edges took " + (Date.now() - profiling) + " ms")
-
-
-var profiling = Date.now();
-//Relaxation, move evert vertex to the center the polygons (Lloyd's algorithm)
-relax(10);
-
-console.log("Relaxation took " + (Date.now() - profiling) + " ms")
-
-function relax(times) {
-	for(var k = 0; k < times; k++) {
-		for(var i = 0; i < geometry.vertices.length; i++) {
-			var amountOfTriangles = 0;
-			var averageX = 0;
-			var averageY = 0;
-			var averageZ = 0;
-
-			for(var j = 0; j < geometry.faces.length; j++) {
-				var face = geometry.faces[j];
-				if(face.a == i || face.b == i || face.c == i) {
-					amountOfTriangles++;
-					var v1 = geometry.vertices[face.a];
-					var v2 = geometry.vertices[face.b];
-					var v3 = geometry.vertices[face.c];
-
-					//Divide by three later on
-					averageX += (v1.x + v2.x + v3.x);
-					averageY += (v1.y + v2.y + v3.y);
-					averageZ += (v1.z + v2.z + v3.z);
-				}
-			}
-
-			averageX /= 3;
-			averageY /= 3;
-			averageZ /= 3;
-
-			averageX /= amountOfTriangles;
-			averageY /= amountOfTriangles;
-			averageZ /= amountOfTriangles;
-
-			//Keep distance from sphere center (0, 0, 0)
-			geometry.vertices[i].set(averageX, averageY, averageZ).setLength(1);
-		}
-	}
-}
-
 var profiling = Date.now();
 
 var he_vertices = [];
 var he_faces = [];
 var he_edges = [];
-
 
 var subProfiling = Date.now();
 //Add vertices
@@ -246,29 +95,24 @@ var subProfiling = Date.now();
 for(var i = 0; i < he_edges.length; i++) {
 	var edge = he_edges[i];
 
-	for(var j = 0; j < he_edges.length; j++) {
+	for(var j = (i + 1); j < he_edges.length; j++) {
 		var edge2 = he_edges[j];
-		if(i !== j) {
-			if((edge.vertA === edge2.vertB && edge.vertB === edge2.vertA) || (edge.vertA === edge2.vertA && edge.vertB === edge2.vertB)) {
-				edge.pair = edge2;
-				edge2.pair = edge;
-				break;
-			}
-		}
-
-		if(j == he_edges.length - 1) {
-			console.log("No pair!!");
+		if((edge.vertA === edge2.vertB && edge.vertB === edge2.vertA) || (edge.vertA === edge2.vertA && edge.vertB === edge2.vertB)) {
+			edge.pair = edge2;
+			edge2.pair = edge;
+			break;
 		}
 	}
+
+	if(edge.pair == null)
+		console.log("Edge is missing a pair")
 }
 console.log("    Pair generation took " + (Date.now() - subProfiling) + " ms")
-
-console.log("Half-edge generation took " + (Date.now() - profiling) + " ms")
 
 var profiling = Date.now();
 
 var hexagonGeom = new THREE.Geometry();
-
+//Generate terrain
 noise.seed(Math.random());
 
 for(var i = 0; i < he_vertices.length; i++) {
@@ -282,10 +126,12 @@ for(var i = 0; i < he_vertices.length; i++) {
 
 	var r = 1 - Math.abs(noiseValue) / 4;
 
+
 	if(noiseValue > 0)
 		color = new THREE.Color(0.3 * r, 0.5 * r, 0.2 * r);
 	else
 		color = new THREE.Color(0.2 * r, 0.3 * r, 0.7 * r);
+
 
 	//Used for triangulation
 	var firstFaceVertex = -1;
