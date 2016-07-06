@@ -1,5 +1,5 @@
 HexPlanet
 =========
-[Test me in your browser!](http://onoff97.github.io/HexPlanet)
+[Test me in your browser!](http://kosomoN.github.io/HexPlanet)
 
 Prototype of planet rendering in WebGL using [Three.js](http://threejs.org/)
